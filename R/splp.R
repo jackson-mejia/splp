@@ -506,14 +506,14 @@ splp_ci_out <- function(obj,ci,boots){
       ggplot2::theme(panel.border = ggplot2::element_blank(), axis.line = ggplot2::element_line()) +
       ggplot2::theme(axis.text=ggplot2::element_text(colour="black")) +
       ggplot2::theme(legend.text=ggplot2::element_text(size=15)) + ggplot2::theme(legend.title=ggplot2::element_text(size=13))
-    obj$comb_plot <- ggplot2::ggplot(data = obj$plp$regcoefdf) +
-      ggplot2::geom_ribbon(ggplot2::aes(x = horizon, ymin = cil, ymax = cih), fill = "0072B2", alpha = 0.3) +
+     obj$comb_plot <- ggplot2::ggplot(data = obj$plp$regcoefdf) +
+      ggplot2::geom_ribbon(ggplot2::aes(x = horizon, ymin = cil, ymax = cih), fill = "#0072B2", alpha = 0.3) +
       ggplot2::geom_line(ggplot2::aes(x = horizon, y = IRF, color = "Unsmoothed"),linewidth = 1.25) +
       ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
-      ggplot2::geom_ribbon(ggplot2::aes(x = horizon, ymin = cil, ymax = cih), fill = "D55E00", alpha = 0.3, data = smoothed_coefdf) +
+      ggplot2::geom_ribbon(ggplot2::aes(x = horizon, ymin = cil, ymax = cih), fill = "#D55E00", alpha = 0.3, data = smoothed_coefdf) +
       ggplot2::geom_line(ggplot2::aes(x = horizon, y = IRF, color = "Smoothed"),linewidth = 1.25, data = smoothed_coefdf) +
       ggplot2::theme_minimal() +
-      ggplot2::scale_color_manual(values = c("Unsmoothed" = "#0072B2", "Smoothed" = "D55E00")) +
+      ggplot2::scale_color_manual(values = c("Unsmoothed" = "#0072B2", "Smoothed" = "#D55E00")) +
       ggplot2::labs(y = "IRF",
                     x = "Horizon",
                     color = NULL) +
@@ -550,7 +550,7 @@ splp_ci_out <- function(obj,ci,boots){
       ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
       ggplot2::geom_line( ggplot2::aes(x = horizon, y = IRF, color = "Smoothed"),linewidth = 1.25, data = smoothed_coefdf) +
       ggplot2::theme_minimal() +
-      ggplot2::scale_color_manual(values = c("Unsmoothed" = "0072B2", "Smoothed" = "D55E00")) +
+      ggplot2::scale_color_manual(values = c("Unsmoothed" = "#0072B2", "Smoothed" = "#D55E00")) +
       ggplot2::labs(y = "IRF",
                     x = "Horizon",
                     color = NULL) +
