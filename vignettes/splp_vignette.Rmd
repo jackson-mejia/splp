@@ -1,0 +1,131 @@
+---
+title: "splp"
+output: rmarkdown::pdf_document
+vignette: >
+  %\VignetteIndexEntry{splp}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.height = 5, fig.width = 7, fig.align = "center"
+)
+```
+
+
+
+```{r setup,include=FALSE}
+library(splp)
+```
+
+This vignette presents some of the basic uses of splp through several examples with Arezki, Ramey, and Sheng (QJE 2017) and Acemoglu, Naidu, Restrepo, and Robinson (2019 JPE). First, load in the data (downloaded from their replication pages) and transform it into a panel.
+
+```{r}
+data(ars)
+# Filter out observations which do not have an oil news shock (sizerealistic) and which do not have an observation on the current account.
+ars <- ars[!is.na(ars$sizerealistic) & !is.na(ars$ca),]
+# Set panel identifiers
+ars <- fixest::panel(ars, panel.id = c("ifscode", "year"))
+
+data(anrr)
+# Preserve the ANRR data for a democracy IRF at the bottom.
+anrr <- fixest::panel(anrr, panel.id = c("wbcode2", "year"))
+```
+
+The panel is unbalanced:
+```{r}
+#Number of countries
+length(unique(ars$ifscode))
+#Number of time periods
+length(unique(ars$year))
+```
+
+Next, we define the regression formula using fixest notation. Our desired IRF comes from
+$$\frac{\text{Current Account}}{GDP}_{i,t+h} = \alpha_i + T_t + \beta_h \times\text{Oil News Shock}_{i,t} + \varepsilon_{i,t+h}, $$
+where $\alpha_i$ is a country fixed effect and $T_t$ is a time fixed effect. Say that the maximum horizon is $H = 20$. Then we define the regression formula as
+```{r}
+reg_formula <- f(ca,0:20)  ~ sizerealistic | ifscode + year
+```
+
+Now, suppose we want to look at smoothed IRFs for polynomials of order 1 and 2 with 1000 bootstraps each. We set r = c(1,2) in the function call. Note that this isn't important and we could have simply set r = 2. Then we could run the following code.
+
+```{r,results='hide'}
+t1 <- Sys.time()
+splp_obj <- splp(reg_formula, r = c(1,2),
+                 paneldf = ars, type = "splp", targetvar = "sizerealistic",boots = 1000)
+t2 <- Sys.time()
+```
+This returns a list with the regular local projection, info about the specification, and a list of smooth local projections. We can call the smoothed IRFs for each from, for example, the following code.
+```{r}
+## Plot of PLP estimator
+splp_obj$plp$regplot
+## Plot of order 1 splp estimator. To get the second order, we would call splp_obj$splp$order_1$plot
+splp_obj$splp$order_1$plot
+## Plot of both on top of each other.
+splp_obj$splp$order_1$comp_plot
+```
+We can also access the IRFs as a dataframe.
+```{r}
+## IRF for PLP
+splp_obj$plp$regcoefdf
+## IRF for second order splp estimator
+splp_obj$splp$order_2$irf
+
+```
+Within the list, one can also access the original estimates for each horizon of the PLP estimator as well as the matrices, penalty parameters, and so on for the splp estimator.
+```{r}
+t2 - t1
+```
+One may also be interested in a number of other different operations. Because the code is a wrapper for fixest, we can do anything permissible in that notation as long as it isn't too computationally expensive. For example, we can add regional fixed effects:
+```{r}
+reg_formula2 <- f(ca,0:20)  ~ sizerealistic | ifscode + year + region_weo
+```
+Or we can cluster by region instead by setting clustervar = region_weo in the function call. 
+```{r,results='hide'}
+splp_obj2 <- splp(reg_formula2, r = c(1),
+                 paneldf = ars, type = "splp", targetvar = "sizerealistic",boots = 1000,clustervar = "region_weo")
+```
+```{r}
+splp_obj2$splp$order_1$comp_plot
+```
+In this case, it's really not very different, but that's application-specific. We could also use instrumental variables. This isn't very theoretically sensible, but let's say we wanted to estimate the effect of wildcat drilling on the current account using the oil shock as an instrument while controlling for the exchange rate. 
+
+```{r,results='hide'}
+reg_formula3 <- f(ca,0:20)   ~ lreer_ins | ifscode + year | lnwildcat ~ sizerealistic 
+
+splp_obj_iv <- splp(reg_formula3, r = 2,
+                 paneldf = ars, type = "splp", targetvar = "lnwildcat",boots = 0)
+```
+```{r}
+splp_obj_iv$splp$order_2$comp_plot
+```
+Super ugly, but the point is that you can do it. Next, we often want cumulative IRFs of the form
+$$y_{i,t+h} - y_{i,t-1} = \alpha_i + T_t + \beta_h \times \text{Shock}_{i,t} + \varepsilon_{i,t+h}.$$
+This is easy to do. Let's do it for consumption
+```{r,results='hide'}
+reg_formula4 <- f(lnclcu,0:20) -l(lnclcu)  ~ sizerealistic | ifscode + year 
+
+splp_obj_cum <- splp(reg_formula4, r = 1,
+                 paneldf = ars, type = "splp", targetvar = "sizerealistic",boots = 0)
+```
+```{r}
+splp_obj_cum$splp$order_1$comp_plot
+```
+Note that the function is very fast at calling IRFs alone by simply setting boots = 0. It's also possible to manually set the penalty parameter.
+
+As a final example, consider the question of whether democracy causes growth in Acemoglu, Naidu, Restrepo, and Robinson (2019 JPE). One of their main results (Figure 3) estimates
+$$y_{i,t+h} - y_{i,t-1} =  T_t + \beta_h \times {D}_{i,t} + \sum_{j=1}^p \gamma_{h,j}y_{i,t-j}+ \varepsilon_{i,t+h},$$
+where $y$ is log output and $D$ is a democracy transition indicator. See their paper for more details. The below figures replicate their original analysis and show second and third-order polynomial approximations.
+
+```{r}
+anrr_irf <- splp(f(y,0:30)  ~ tdemoc + l(y,1:4) | year, 
+                 paneldf = anrr,ci = 0.95,
+                 type = "splp", r = c(2,3), targetvar = "tdemoc",boots = 1000)
+
+anrr_irf$splp$order_2$comp_plot
+
+anrr_irf$splp$order_3$comp_plot
+```

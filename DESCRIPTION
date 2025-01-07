@@ -1,0 +1,26 @@
+Package: splp
+Type: Package
+Title: Smooth Local Projections for Panel Data
+Version: 0.1.0
+Authors@R: person("Jackson", "Mejia", email = "jpmejia@pmit.edu",
+  role = c("aut", "cre"))
+Maintainer: Jackson Mejia <jpmejia@mit.edu>
+Description: Implements smooth local projections for panel data. It extends the Barnichon &
+    Brownlees (2019) ridge regression estimator for time series data into panel data. The
+    package is a wrapper for fixest and uses the same notation.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends:
+    data.table,
+    R (>= 2.10)
+Imports:
+    splines,
+    Matrix,
+    fixest,
+    ggplot2
+RoxygenNote: 7.2.3
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
